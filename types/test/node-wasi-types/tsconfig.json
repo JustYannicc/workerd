@@ -1,0 +1,8 @@
+{
+  "extends": "../types/tsconfig.json",
+  "files": [
+    "wasi.ts",
+    "../../../node_modules/@types/node/wasi.d.ts"
+  ],
+  "include": []
+}

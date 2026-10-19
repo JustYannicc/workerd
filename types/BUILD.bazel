@@ -1,4 +1,5 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@npm//:typescript/package_json.bzl", tsc_bin = "bin")
 load("//:build/wd_ts_project.bzl", "wd_ts_project")
 load("//:build/wd_ts_test.bzl", "wd_ts_test")
 load("//:build/wd_ts_type_test.bzl", "wd_ts_type_test")
@@ -97,3 +98,22 @@ js_run_binary(
     wd_ts_type_test(src = src)
     for src in glob(["test/types/**/*.ts"])
 ]
+
+tsc_bin.tsc_test(
+    name = "wasi_public_types",
+    args = [
+        "--project",
+        "$(location //types:test/node-wasi-types/tsconfig.json)",
+        "--types",
+        "../../definitions/experimental",
+    ],
+    data = [
+        "test/node-wasi-types/wasi.ts",
+        "//:node_modules/@types/node",
+        "//:node_modules/expect-type",
+        "//types",
+        "//types:test/node-wasi-types/tsconfig.json",
+        "//types:test/types/tsconfig.json",
+    ],
+    tags = ["no-coverage"],
+)
