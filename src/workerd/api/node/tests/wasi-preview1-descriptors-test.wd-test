@@ -1,0 +1,31 @@
+using Workerd = import "/workerd/workerd.capnp";
+
+const unitTests :Workerd.Config = (
+  services = [
+    ( name = "wasi-preview1-descriptors-test",
+      worker = (
+        modules = [
+          (name = "worker", esModule = embed "wasi-preview1-descriptors-worker.js"),
+        ],
+        compatibilityFlags = [
+          "nodejs_compat",
+          "nodejs_compat_v2",
+          "enable_nodejs_wasi_module",
+          "nodejs_wasi_preview1",
+        ],
+      ),
+    ),
+  ],
+  extensions = [ (
+    modules = [
+      (name = "test:wasi-transfers", internal = true, esModule = embed "wasi-preview1-transfer-test.js"),
+      (name = "test:wasi-descriptors", esModule = embed "wasi-preview1-descriptors-test.js"),
+      (name = "test:wasi-descriptors-support", internal = true, esModule = embed "wasi-preview1-descriptors-support.js"),
+      (name = "test:wasi-descriptors-table", internal = true, esModule = embed "wasi-preview1-descriptors-table-test.js"),
+      (name = "test:wasi-descriptors-fd", internal = true, esModule = embed "wasi-preview1-descriptors-fd-test.js"),
+      (name = "test:wasi-descriptors-lifecycle", internal = true, esModule = embed "wasi-preview1-descriptors-lifecycle-test.js"),
+      (name = "test:wasi-poll", internal = true, esModule = embed "wasi-preview1-poll-test.js"),
+      (name = "test:wasi-path-anchors", internal = true, esModule = embed "wasi-preview1-path-anchor-test.js"),
+    ],
+  ) ],
+);

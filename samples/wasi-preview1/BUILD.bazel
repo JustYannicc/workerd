@@ -1,0 +1,20 @@
+load("//:build/wasm_tools_parse.bzl", "wasm_tools_parse")
+load("//:build/wd_test.bzl", "wd_test")
+
+wasm_tools_parse(
+    name = "guest.wasm",
+    src = "guest.wat",
+)
+
+wd_test(
+    src = "demo.wd-test",
+    args = ["--experimental"],
+    data = [
+        "provider.js",
+        "worker.js",
+        ":guest.wasm",
+    ],
+    generate_all_autogates_variant = False,
+    generate_all_compat_flags_variant = False,
+    generate_gc_stress_variant = False,
+)

@@ -1,0 +1,21 @@
+using Workerd = import "/workerd/workerd.capnp";
+
+const unitTests :Workerd.Config = (
+  services = [
+    (name = "wasi-preview1-demo",
+      worker = (
+        modules = [
+          (name = "worker", esModule = embed "worker.js"),
+          (name = "provider.js", esModule = embed "provider.js"),
+          (name = "guest.wasm", wasm = embed "guest.wasm"),
+        ],
+        compatibilityFlags = [
+          "nodejs_compat",
+          "nodejs_compat_v2",
+          "enable_nodejs_wasi_module",
+          "nodejs_wasi_preview1",
+        ],
+      ),
+    ),
+  ],
+);

@@ -1,0 +1,29 @@
+using Workerd = import "/workerd/workerd.capnp";
+
+const unitTests :Workerd.Config = (
+  services = [
+    ( name = "wasi-preview1-test",
+      worker = (
+        modules = [
+          (name = "worker", esModule = embed "wasi-preview1-test.js"),
+          (name = "wasi-test-storage.js", esModule = embed "wasi-test-storage.js"),
+          (name = "wasi-preview1-sparse-storage.js", esModule = embed "wasi-preview1-sparse-storage.js"),
+          (name = "wasi-preview1-test-support.js", esModule = embed "wasi-preview1-test-support.js"),
+          (name = "wasi-preview1-readonly-open-test.js", esModule = embed "wasi-preview1-readonly-open-test.js"),
+          (name = "wasi-preview1-directory-refresh-test.js", esModule = embed "wasi-preview1-directory-refresh-test.js"),
+          (name = "wasi-preview1-lifecycle-error-test.js", esModule = embed "wasi-preview1-lifecycle-error-test.js"),
+          (name = "wasi-preview1-nonblocking-open-test.js", esModule = embed "wasi-preview1-nonblocking-open-test.js"),
+          (name = "wasi-preview1-nonblocking-stdio-test.js", esModule = embed "wasi-preview1-nonblocking-stdio-test.js"),
+          (name = "wasi-preview1-reactor.wasm", wasm = embed "wasi-preview1-reactor.wasm"),
+          (name = "wasi-preview1-command.wasm", wasm = embed "wasi-preview1-command.wasm"),
+        ],
+        compatibilityFlags = [
+          "nodejs_compat",
+          "nodejs_compat_v2",
+          "enable_nodejs_wasi_module",
+          "nodejs_wasi_preview1",
+        ]
+      )
+    ),
+  ],
+);

@@ -1,5 +1,6 @@
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//:build/wasm_tools_parse.bzl", "wasm_tools_parse")
 load("//:build/wd_test.bzl", "wd_test")
 
 wd_test(
@@ -820,6 +821,59 @@ wd_test(
     src = "wasi-nodejs-test.wd-test",
     args = ["--experimental"],
     data = ["wasi-nodejs-test.js"],
+)
+
+wasm_tools_parse(
+    name = "wasi-preview1-reactor.wasm",
+    src = "wasi-preview1-reactor.wat",
+)
+
+wasm_tools_parse(
+    name = "wasi-preview1-command.wasm",
+    src = "wasi-preview1-command.wat",
+)
+
+wd_test(
+    src = "wasi-preview1-test.wd-test",
+    args = ["--experimental"],
+    data = [
+        "wasi-preview1-directory-refresh-test.js",
+        "wasi-preview1-lifecycle-error-test.js",
+        "wasi-preview1-nonblocking-open-test.js",
+        "wasi-preview1-nonblocking-stdio-test.js",
+        "wasi-preview1-readonly-open-test.js",
+        "wasi-preview1-sparse-storage.js",
+        "wasi-preview1-test.js",
+        "wasi-preview1-test-support.js",
+        "wasi-test-storage.js",
+        ":wasi-preview1-command.wasm",
+        ":wasi-preview1-reactor.wasm",
+    ],
+)
+
+wd_test(
+    src = "wasi-preview1-native-test.wd-test",
+    args = ["--experimental"],
+    data = [
+        "wasi-preview1-native-test.js",
+        ":wasi-preview1-reactor.wasm",
+    ],
+)
+
+wd_test(
+    src = "wasi-preview1-descriptors-test.wd-test",
+    args = ["--experimental"],
+    data = [
+        "wasi-preview1-descriptors-fd-test.js",
+        "wasi-preview1-descriptors-lifecycle-test.js",
+        "wasi-preview1-descriptors-support.js",
+        "wasi-preview1-descriptors-table-test.js",
+        "wasi-preview1-descriptors-test.js",
+        "wasi-preview1-descriptors-worker.js",
+        "wasi-preview1-path-anchor-test.js",
+        "wasi-preview1-poll-test.js",
+        "wasi-preview1-transfer-test.js",
+    ],
 )
 
 wd_test(
