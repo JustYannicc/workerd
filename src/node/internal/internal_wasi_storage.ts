@@ -59,7 +59,7 @@ export interface Storage {
   ): { offset: bigint; bytesWritten: number };
   truncate(inode: Inode, size: bigint): void;
   setTimes(inode: Inode, times: Times): void;
-  /** Confirms local storage commit, not replication or a Drive checkpoint. */
+  /** Confirms local storage commit; replication follows the provider's policy. */
   sync(inode: Inode, dataOnly: boolean): void;
   /**
    * Returns a retained inode. Nonexclusive creation may open an existing file;

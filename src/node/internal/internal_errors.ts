@@ -1091,3 +1091,15 @@ export class ERR_TRACE_EVENTS_CATEGORY_REQUIRED extends NodeTypeError {
     );
   }
 }
+
+export class ERR_INVALID_STATE extends NodeError {
+  constructor(message: string) {
+    super('ERR_INVALID_STATE', `Invalid state: ${message}`);
+  }
+}
+
+export class ERR_WASI_ALREADY_STARTED extends NodeError {
+  constructor() {
+    super('ERR_WASI_ALREADY_STARTED', 'WASI instance has already started');
+  }
+}

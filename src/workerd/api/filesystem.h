@@ -59,6 +59,8 @@ class FileSystemModule final: public jsg::Object {
   };
 
   kj::Maybe<Stat> stat(jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd, StatOptions options);
+  kj::String getUniqueId(
+      jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd, StatOptions options);
   void setLastModified(
       jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd, kj::Date lastModified, StatOptions options);
   void truncate(jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd, uint32_t size);
@@ -109,8 +111,15 @@ class FileSystemModule final: public jsg::Object {
     JSG_STRUCT(position);
   };
 
+  struct AppendResult {
+    uint32_t offset;
+    uint32_t bytesWritten;
+    JSG_STRUCT(offset, bytesWritten);
+  };
+
   uint32_t write(jsg::Lock& js, int fd, kj::Array<jsg::JsRef<jsg::JsBufferSource>> data, WriteOptions options);
   uint32_t read(jsg::Lock& js, int fd, kj::Array<jsg::JsRef<jsg::JsBufferSource>> data, WriteOptions options);
+  AppendResult append(jsg::Lock& js, int fd, jsg::JsBufferSource data);
 
   jsg::JsRef<jsg::JsUint8Array> readAll(jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd);
 
@@ -187,6 +196,7 @@ class FileSystemModule final: public jsg::Object {
 
   JSG_RESOURCE_TYPE(FileSystemModule) {
     JSG_METHOD(stat);
+    JSG_METHOD(getUniqueId);
     JSG_METHOD(setLastModified);
     JSG_METHOD(truncate);
     JSG_METHOD(readLink);
@@ -196,6 +206,7 @@ class FileSystemModule final: public jsg::Object {
     JSG_METHOD(close);
     JSG_METHOD(write);
     JSG_METHOD(read);
+    JSG_METHOD(append);
     JSG_METHOD(readAll);
     JSG_METHOD(writeAll);
     JSG_METHOD(renameOrCopy);
@@ -679,6 +690,7 @@ class StorageManager final: public jsg::Object {
       workerd::api::FileSystemModule::ReadLinkOptions,                                             \
       workerd::api::FileSystemModule::LinkOptions, workerd::api::FileSystemModule::OpenOptions,    \
       workerd::api::FileSystemModule::WriteOptions,                                                \
+      workerd::api::FileSystemModule::AppendResult,                                                \
       workerd::api::FileSystemModule::WriteAllOptions,                                             \
       workerd::api::FileSystemModule::RenameOrCopyOptions,                                         \
       workerd::api::FileSystemModule::MkdirOptions, workerd::api::FileSystemModule::RmOptions,     \

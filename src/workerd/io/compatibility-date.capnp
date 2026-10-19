@@ -1717,4 +1717,10 @@ struct CompatibilityFlags @0x8f8c1b68151b6cef {
   # the origin's Cache-Control (for example, an origin `no-store` gets cached as `no-cache`). When
   # enabled, the cache option no longer sets `cf.cacheControl`. To override the origin's
   # Cache-Control, omit the `cache` option and use `cf.cacheControl` instead.
+
+  nodejsWasiPreview1 @195 :Bool
+      $compatEnableFlag("nodejs_wasi_preview1");
+  # Enables WASI preview1 in node:wasi and the explicit AsyncWASI JSPI host.
+  # Filesystem roots are supplied as preopens or explicit storage mounts.
+  # Without this opt-in, the WASI constructor remains a non-functional stub.
 }

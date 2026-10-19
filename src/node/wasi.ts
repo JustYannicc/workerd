@@ -11,15 +11,32 @@ import {
 
 import { ERR_METHOD_NOT_IMPLEMENTED } from 'node-internal:internal_errors';
 
-import type { WASIOptions } from 'node:wasi';
+import { WasiLifecycle } from 'node-internal:internal_wasi_lifecycle';
+import { validateOptions } from 'node-internal:internal_wasi_options';
+import type {
+  WASIOptions,
+  AsyncWASIOptions,
+} from 'node-internal:internal_wasi_options';
+import type { FinalizeBindingsOptions } from 'node-internal:internal_wasi_lifecycle';
 
-interface FinalizeBindingsOptions {
-  memory?: WebAssembly.Memory | undefined;
-}
+export type { WASIOptions, AsyncWASIOptions };
+export type {
+  Inode,
+  Stat,
+  DirectoryEntry,
+  CreateOptions,
+  Times,
+  Storage,
+  AsyncStorage,
+  Mount,
+} from 'node-internal:internal_wasi_storage';
+export type { WasiPollResult, WasiStdio } from 'node-internal:internal_wasi_fs';
 
-// TODO(later): This is one we actually might want to implement at some point.
+const enabled = !!Cloudflare.compatibilityFlags['nodejs_wasi_preview1'];
 
 export class WASI {
+  readonly #host: WasiLifecycle;
+
   constructor(options: WASIOptions = { version: 'unstable' }) {
     validateObject(options, 'options');
     validateOneOf(options.version, 'options.version', ['unstable', 'preview1']);
@@ -41,24 +58,78 @@ export class WASI {
       validateBoolean(options.returnOnExit, 'options.returnOnExit');
     }
 
-    throw new ERR_METHOD_NOT_IMPLEMENTED('WASI');
+    if (!enabled) throw new ERR_METHOD_NOT_IMPLEMENTED('WASI');
+    this.#host = new WasiLifecycle(validateOptions(options), false);
   }
 
-  finalizeBindings(_1: object, _2: FinalizeBindingsOptions = {}): void {
-    throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.finalizeBindings');
+  get wasiImport(): WebAssembly.ModuleImports {
+    return this.#host.wasiImport;
   }
 
-  start(_: object): number {
-    throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.start');
+  finalizeBindings(
+    instance: object,
+    options: FinalizeBindingsOptions = {}
+  ): void {
+    if (!enabled) throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.finalizeBindings');
+    this.#host.finalizeBindings(instance, options);
   }
 
-  initialize(_: object): void {
-    throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.initialize');
+  start(instance: object): number {
+    if (!enabled) throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.start');
+    return this.#host.start(instance);
   }
 
-  getImportObject(): object {
-    return {};
+  initialize(instance: object): void {
+    if (!enabled) throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.initialize');
+    this.#host.initialize(instance);
+  }
+
+  close(): void {
+    if (!enabled) throw new ERR_METHOD_NOT_IMPLEMENTED('WASI.close');
+    this.#host.close();
+  }
+
+  getImportObject(): WebAssembly.Imports {
+    return enabled ? this.#host.getImportObject() : {};
   }
 }
 
-export default { WASI };
+/** Explicit asynchronous lifecycle for preview1 guests with async providers. */
+export class AsyncWASI {
+  readonly #host: WasiLifecycle;
+
+  constructor(options: AsyncWASIOptions = { version: 'preview1' }) {
+    if (!enabled) throw new ERR_METHOD_NOT_IMPLEMENTED('AsyncWASI');
+    this.#host = new WasiLifecycle(validateOptions(options), true);
+  }
+
+  get wasiImport(): WebAssembly.ModuleImports {
+    return this.#host.wasiImport;
+  }
+
+  getImportObject(): WebAssembly.Imports {
+    return this.#host.getImportObject();
+  }
+
+  start(instance: object): Promise<number> {
+    return this.#host.startAsync(instance);
+  }
+
+  initialize(instance: object): Promise<void> {
+    return this.#host.initializeAsync(instance);
+  }
+
+  /** Enters a reactor export through JSPI. Concurrent calls are rejected. */
+  run(
+    fn: (...args: Array<number | bigint>) => unknown,
+    ...args: Array<number | bigint>
+  ): Promise<unknown> {
+    return this.#host.runAsync(fn, ...args);
+  }
+
+  close(): Promise<void> {
+    return this.#host.closeAsync();
+  }
+}
+
+export default { WASI, AsyncWASI };

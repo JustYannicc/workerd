@@ -199,6 +199,55 @@ kj::Maybe<Stat> FileSystemModule::stat(
   return kj::none;
 }
 
+kj::String FileSystemModule::getUniqueId(
+    jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd, StatOptions options) {
+  auto& vfs = workerd::VirtualFileSystem::current(js);
+  KJ_SWITCH_ONEOF(pathOrFd) {
+    KJ_CASE_ONEOF(path, FilePath) {
+      NormalizedFilePath normalizedPath(kj::mv(path));
+      KJ_IF_SOME(node,
+          vfs.resolve(
+              js, normalizedPath, {.followLinks = options.followSymlinks.orDefault(true)})) {
+        KJ_SWITCH_ONEOF(node) {
+          KJ_CASE_ONEOF(file, kj::Rc<workerd::File>) {
+            return kj::str(file->getUniqueId(js));
+          }
+          KJ_CASE_ONEOF(dir, kj::Rc<workerd::Directory>) {
+            return kj::str(dir->getUniqueId(js));
+          }
+          KJ_CASE_ONEOF(link, kj::Rc<workerd::SymbolicLink>) {
+            return kj::str(link->getUniqueId(js));
+          }
+          KJ_CASE_ONEOF(err, workerd::FsError) {
+            throwFsError(js, err, "getUniqueId"_kj, kj::str(normalizedPath.url.getPathname()));
+          }
+        }
+        KJ_UNREACHABLE;
+      }
+      node::THROW_ERR_UV_ENOENT(
+          js, "getUniqueId"_kj, nullptr, kj::str(normalizedPath.url.getPathname()));
+    }
+    KJ_CASE_ONEOF(fd, int) {
+      KJ_IF_SOME(opened, vfs.tryGetFd(js, fd)) {
+        KJ_SWITCH_ONEOF(opened->node) {
+          KJ_CASE_ONEOF(file, kj::Rc<workerd::File>) {
+            return kj::str(file->getUniqueId(js));
+          }
+          KJ_CASE_ONEOF(dir, kj::Rc<workerd::Directory>) {
+            return kj::str(dir->getUniqueId(js));
+          }
+          KJ_CASE_ONEOF(link, kj::Rc<workerd::SymbolicLink>) {
+            return kj::str(link->getUniqueId(js));
+          }
+        }
+        KJ_UNREACHABLE;
+      }
+      node::THROW_ERR_UV_EBADF(js, "getUniqueId"_kj);
+    }
+  }
+  KJ_UNREACHABLE;
+}
+
 void FileSystemModule::setLastModified(
     jsg::Lock& js, kj::OneOf<int, FilePath> pathOrFd, kj::Date lastModified, StatOptions options) {
   auto& vfs = workerd::VirtualFileSystem::current(js);
@@ -593,6 +642,32 @@ uint32_t FileSystemModule::read(
   } else {
     node::THROW_ERR_UV_EBADF(js, "read"_kj);
   }
+}
+
+FileSystemModule::AppendResult FileSystemModule::append(
+    jsg::Lock& js, int fd, jsg::JsBufferSource data) {
+  auto& vfs = workerd::VirtualFileSystem::current(js);
+  KJ_IF_SOME(opened, vfs.tryGetFd(js, fd)) {
+    if (!opened->write) node::THROW_ERR_UV_EBADF(js, "append"_kj);
+    KJ_IF_SOME(file, opened->node.tryGet<kj::Rc<workerd::File>>()) {
+      const auto stat = file->stat(js);
+      if (data.size() > kMax - stat.size) node::THROW_ERR_UV_EFBIG(js, "append"_kj);
+      KJ_SWITCH_ONEOF(file->write(js, stat.size, data.asArrayPtr())) {
+        KJ_CASE_ONEOF(written, uint32_t) {
+          return AppendResult{.offset = stat.size, .bytesWritten = written};
+        }
+        KJ_CASE_ONEOF(err, workerd::FsError) {
+          throwFsError(js, err, "append"_kj);
+        }
+      }
+      KJ_UNREACHABLE;
+    }
+    if (opened->node.is<kj::Rc<workerd::Directory>>()) {
+      node::THROW_ERR_UV_EISDIR(js, "append"_kj);
+    }
+    node::THROW_ERR_UV_EINVAL(js, "append"_kj);
+  }
+  node::THROW_ERR_UV_EBADF(js, "append"_kj);
 }
 
 jsg::JsRef<jsg::JsUint8Array> FileSystemModule::readAll(

@@ -16,6 +16,10 @@ export interface Stat {
 }
 
 export function stat(pathOrFd: number | URL, options: StatOptions): Stat | null;
+export function getUniqueId(
+  pathOrFd: number | URL,
+  options: StatOptions
+): string;
 export function setLastModified(
   pathOrFd: number | URL,
   mtime: Date,
@@ -55,6 +59,13 @@ export function write(
     position: number | bigint | null;
   }
 ): number;
+
+export interface AppendResult {
+  offset: number;
+  bytesWritten: number;
+}
+
+export function append(fd: number, data: ArrayBufferView): AppendResult;
 
 export function read(
   fd: number,
